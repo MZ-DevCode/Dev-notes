@@ -134,4 +134,3 @@ s = append(s, 30)             // Добавить один элемент
 s = append(s, 40, 50, 60)      // Добавить несколько
 s = append(s, otherSlice...)   // Слить два слайса (развертывание через '...')
 ```
-![test](https://www.google.com/imgres?q=%D0%BA%D0%B0%D1%80%D1%82%D0%B8%D0%BD%D0%BA%D0%B0&imgurl=https%3A%2F%2Fpng.pngtree.com%2Fthumb_back%2Ffh260%2Fbackground%2F20230610%2Fpngtree-picture-of-a-blue-bird-on-a-black-background-image_2937385.jpg&imgrefurl=https%3A%2F%2Fru.pngtree.com%2Ffree-backgrounds-photos%2F%25D0%25BA%25D0%25B0%25D1%2580%25D1%2582%25D0%25B8%25D0%25BD%25D0%25BA%25D0%25B0-%25D0%25B4%25D0%25BB%25D1%258F-%25D0%25BF%25D1%2580%25D0%25BE%25D1%2584%25D0%25B8%25D0%25BB%25D1%258F&docid=io54ZzhXR7GMDM&tbnid=XDni20rmLI7ZiM&vet=12ahUKEwi4vbaV352TAxUILBAIHauAN00QnPAOegQIGRAB..i&w=640&h=359&hcb=2&ved=2ahUKEwi4vbaV352TAxUILBAIHauAN00QnPAOegQIGRAB)
