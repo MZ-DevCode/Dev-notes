@@ -155,7 +155,7 @@ type Flight struct {
     Number   string `json:"flight_number"` // В JSON будет "flight_number"
     Secret   string `json:"-"`             // Игнорировать в JSON
 }
-```
+
 src := []int{1, 2, 3, 4}       // Выделен массив в куче; слайс получил ptr, len: 4, cap: 4
 dst := make([]int, len(src))   // Выделен ВТОРОЙ независимый массив; len обязана быть > 0
 n := copy(dst, src)            // Побайтовое копирование данных; dst и src теперь автономны
