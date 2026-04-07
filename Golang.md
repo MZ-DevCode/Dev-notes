@@ -559,40 +559,280 @@ m2["key"] = 1  // ok
 
 ### Структуры (Structs)
 
-**Struct** — это пользовательский тип данных, представляющий собой набор полей. В Go это единственный способ группировки данных (заменяет классы).
+Struct — это пользовательский тип данных, представляющий собой набор полей. В Go это единственный способ группировки данных (заменяет классы).
 
 ---
 
 #### 1. Объявление и инициализация
+```
+type User struct {
+    ID    int
+    Name  string
+    Email string
+}
+```
+Способы создания:
 
-```go
+По порядку полей (НЕ рекомендуется — легко ошибиться при добавлении полей):
+```
+u1 := User{1, "Alice", "a@a.com"}
+```
+По именам полей (рекомендуется):
+```
+u2 := User{ID: 2, Name: "Bob"}  // Email будет пустой строкой ""
+```
+Через new (возвращает указатель, поля обнулены):
+```
+u3 := new(User)  // *User
+```
+Через & (полный аналог new):
+```
+u4 := &User{ID: 4, Name: "Dave"}
+```
+
+Частичное заполнение (остальные — zero values):
+```
+u5 := User{Name: "Eve"}  // ID = 0, Email = ""
+```
+---
+
+#### 2. Доступ к полям
+```
+user := User{ID: 1, Name: "Alice", Email: "alice@example.com"}
+```
+Чтение:
+```
+fmt.Println(user.Name)  // Alice
+```
+Запись:
+```
+user.Email = "new@example.com"
+```
+---
+
+#### 3. Встраивание (Embedding)
+
+В Go нет наследования. Вместо него используется композиция: одна структура встраивается в другую как анонимное поле. Это даёт «поднятие» полей и методов.
+```
+type User struct {
+    Name  string
+    Email string
+}
+
+type Admin struct {
+    User      // встроенное поле (только тип, без имени)
+    Level int
+}
+```
+Создание:
+```
+admin := Admin{
+    User:  User{Name: "Admin", Email: "admin@site.com"},
+    Level: 10,
+}
+```
+Доступ к полям User напрямую (поднятие):
+```
+fmt.Println(admin.Name)   // Admin
+fmt.Println(admin.Email)  // admin@site.com
+```
+Полный доступ через имя типа:
+```
+fmt.Println(admin.User.Name)  // Admin
+```
+Переопределение (если Admin тоже имеет поле Name):
+```
+type Admin struct {
+    User
+    Name string  // переопределяет User.Name
+    Level int
+}
+
+admin := Admin{User: User{Name: "UserField"}, Name: "AdminField"}
+fmt.Println(admin.Name)        // AdminField (своё поле)
+fmt.Println(admin.User.Name)   // UserField (доступ к полю встроенной структуры)
+```
+---
+
+#### 4. Теги структур (Struct Tags)
+
+Теги — это метаданные, которые можно прикрепить к полям. Они используются библиотеками (JSON, БД, валидация) для настройки поведения.
+
+Синтаксис: обратные кавычки с ключом и значением: json:"fieldName"
+```
+type Person struct {
+    ID       int    `json:"id"`              // в JSON поле "id"
+    Name     string `json:"name,omitempty"` // пропустить, если пусто
+    Email    string `json:"email,omitempty"`
+    Password string `json:"-"`               // полностью игнорировать в JSON
+    Created  string `json:"created_at"`
+}
+```
+Основные теги:
+
+| Пакет | Пример | Назначение |
+|-------|--------|------------|
+| json | json:"field" | Сериализация в JSON |
+| xml | xml:"field" | Сериализация в XML |
+| db | db:"column_name" | Название колонки в БД (sqlx, gorm) |
+| bson | bson:"field" | MongoDB |
+| yaml | yaml:"field" | Сериализация в YAML |
+| form | form:"field" | Парсинг HTML форм |
+| validate | validate:"required,min=3" | Валидация (go-playground/validator) |
+
+Пример использования json:
+```
+import "encoding/json"
+
+type User struct {
+    ID       int    `json:"id"`
+    Name     string `json:"name,omitempty"`
+    Password string `json:"-"`
+}
+
+user := User{ID: 1, Name: "Alice", Password: "secret"}
+data, _ := json.Marshal(user)
+fmt.Println(string(data))  // {"id":1,"name":"Alice"}  — пароль не попал
+```
+Парсинг JSON в структуру:
+```
+jsonStr := `{"id":2,"name":"Bob"}`
+var user User
+json.Unmarshal([]byte(jsonStr), &user)
+fmt.Println(user.Name)  // Bob
+```
+---
+
+#### 5. Методы структур
+
+В Go можно прикреплять функции к структурам — это называются методами.
+```
+type Rectangle struct {
+    Width  float64
+    Height float64
+}
+
+// Метод с получателем-значением (работает с копией)
+func (r Rectangle) Area() float64 {
+    return r.Width * r.Height
+}
+
+// Метод с получателем-указателем (может изменять структуру)
+func (r *Rectangle) Scale(factor float64) {
+    r.Width *= factor
+    r.Height *= factor
+}
+```
+Использование:
+```
+rect := Rectangle{Width: 10, Height: 5}
+fmt.Println(rect.Area())  // 50
+rect.Scale(2)
+fmt.Println(rect.Area())  // 200
+```
+Когда что использовать:
+
+| Тип получателя | Когда использовать |
+|----------------|-------------------|
+| Значение (r T) | Метод не изменяет структуру, структура маленькая |
+| Указатель (r *T) | Метод изменяет структуру, структура большая, нужна консистентность |
+
+---
+
+#### 6. Приватные и публичные поля
+
+В Go видимость определяется первой буквой:
+
+| Первая буква | Видимость |
+|--------------|-----------|
+| Заглавная (A-Z) | Публичное (экспортируемое) — доступно из других пакетов |
+| Строчная (a-z) | Приватное — доступно только внутри своего пакета |
+```
+type Config struct {
+    PublicKey  string  // видно везде
+    privateKey string  // видно только внутри пакета
+}
+```
+---
+
+#### 7. Конструкторы (паттерн)
+
+В Go нет встроенных конструкторов. Вместо них используют функции New...:
+```
 type User struct {
     ID    int
     Name  string
     Email string
 }
 
-// Способы создания:
-u1 := User{1, "Alice", "a@a.com"}   // По порядку полей (не рекомендуется)
-u2 := User{ID: 2, Name: "Bob"}      // По именам (рекомендуется, Email будет "")
-u3 := new(User)                     // Возвращает указатель *User, поля обнулены
-```
-
-### 2. Встраивание
-В Go нет наследования. Используется композиция: одна структура встраивается в другую как анонимное поле.
-
-```
-type Admin struct {
-    User       // Встроенное поле (Anonymous field)
-    Level int
+// Функция-конструктор
+func NewUser(id int, name, email string) *User {
+    return &User{
+        ID:    id,
+        Name:  name,
+        Email: email,
+    }
 }
 
-ad := Admin{User: User{Name: "Admin"}, Level: 10}
-fmt.Println(ad.Name) // Поля User доступны напрямую из Admin (ad.Name)
+// С валидацией
+func NewUserValidated(id int, name, email string) (*User, error) {
+    if name == "" {
+        return nil, errors.New("name cannot be empty")
+    }
+    return &User{ID: id, Name: name, Email: email}, nil
+}
 ```
+---
 
-### 3. Теги структур
-Метаданные для внешних библиотек (JSON, БД).
+#### 8. Сравнение структур
+
+Структуры можно сравнивать через == и !=, если все их поля сравнимы.
+```
+type Point struct {
+    X, Y int
+}
+
+p1 := Point{1, 2}
+p2 := Point{1, 2}
+p3 := Point{3, 4}
+
+fmt.Println(p1 == p2)  // true
+fmt.Println(p1 == p3)  // false
+```
+Структуры с полями, которые нельзя сравнивать (слайсы, мапы) — нельзя сравнивать через ==.
+
+---
+
+#### 9. Пустые структуры
+
+Пустая структура struct{} не занимает памяти (0 байт).
+```
+var empty struct{}
+fmt.Println(unsafe.Sizeof(empty))  // 0
+```
+Используется для:
+- Каналов-сигналов: make(chan struct{})
+- Ключей в мапе для множества: map[string]struct{}{"a": {}, "b": {}}
+
+---
+
+#### 10. Резюме
+
+| Концепция | Синтаксис | Примечание |
+|-----------|-----------|------------|
+| Объявление | type T struct { fields } | |
+| Создание (по именам) | T{Field: value} | рекомендуется |
+| Создание (указатель) | &T{...} или new(T) | |
+| Доступ к полю | t.Field | |
+| Встраивание | type A struct { B } | поднятие полей и методов |
+| Теги | \`json:"name"\` | метаданные для библиотек |
+| Метод (значение) | func (t T) method() | не изменяет t |
+| Метод (указатель) | func (t *T) method() | может изменять t |
+| Приватное поле | name | строчная буква |
+| Публичное поле | Name | заглавная буква |
+| Сравнение | t1 == t2 | только если все поля сравнимы |
+
+Структуры — основа организации данных в Go. Встраивание вместо наследования даёт гибкую композицию. Теги делают структуры удобными для работы с JSON, БД и валидацией.
 
 ### Интерфейсы (Interfaces)
 
