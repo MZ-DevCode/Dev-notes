@@ -76,3 +76,18 @@ git merge feature/new-feature
 # 6. Удалить ненужную ветку
 git branch -d feature/new-feature
 ```
+
+##SSH keys
+
+### Авторизация через ключи
+```bash
+# Генерируем ключ
+ssh-keygen -t ed25519 -C "your_mask_email"
+
+# Посмотреть ключ (копируем и вставляем в настройки GitHub)
+cat ~/.ssh/id_ed25519.pub
+
+# Тест связи
+ssh -T git@github.com
+```
+
